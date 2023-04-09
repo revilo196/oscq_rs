@@ -3,10 +3,12 @@ use crate::OSCNode;
 use hyper::service::Service;
 use hyper::{body::Incoming as IncomingBody, Request, Response};
 use std::future::Future;
+use std::net::SocketAddr;
 use std::pin::Pin;
+use std::sync::Arc;
 
 struct OscQueryStatic {
-    root: OSCNode,
+    root: Arc<OSCNode>,
 }
 
 impl Service<Request<IncomingBody>> for OscQueryStatic {
@@ -16,6 +18,7 @@ impl Service<Request<IncomingBody>> for OscQueryStatic {
 
     fn call(&mut self, req: Request<IncomingBody>) -> Self::Future {
         fn mk_response(s: String) -> Result<Response<String>, hyper::Error> {
+            println!("{}",s);
             Ok(Response::builder().body(s).unwrap())
         }
 
@@ -27,18 +30,44 @@ impl Service<Request<IncomingBody>> for OscQueryStatic {
     }
 }
 
+use tokio::net::TcpListener;
+use hyper::server::conn::http1;
+
+pub async fn run_oscquery_service(root: OSCNode, address : SocketAddr) -> tokio::io::Result<()> {
+    let arc_root=  Arc::new(root);
+    let listener = TcpListener::bind(address).await?;
+
+    tokio::task::spawn(async move { 
+        loop {
+            let (stream, _) = listener.accept().await.unwrap();
+            let service = OscQueryStatic { root: arc_root.clone()  };
+            tokio::task::spawn(async move {
+                if let Err(err) = http1::Builder::new()
+                    .serve_connection(stream, service)
+                    .await
+                {
+                    println!("Failed to serve connection: {:?}", err);
+                }
+            });  
+        
+        }
+    });
+    Ok(())
+}
+
+
 #[tokio::test]
 async fn test_service() {
     use crate::{OSCAccess, OSCUnit, OscHostInfo, OscQueryParameter};
     use hyper::server::conn::http1;
     use rosc::OscType;
     use std::net::SocketAddr;
-    use tokio::net::TcpListener;
+ 
 
     let info = OscHostInfo::new("OSCQuery Test".to_string(), "127.0.0.1".to_string(), 6666)
         .with_ext_access()
         .with_ext_unit()
-        .with_ext_value()
+        //.with_ext_value()
         .with_ext_description()
         .with_ext_range();
 
@@ -66,17 +95,24 @@ async fn test_service() {
     root.add(par2).unwrap();
     root.add(par3).unwrap();
 
-    let service = OscQueryStatic { root };
+    let arc_root=  Arc::new(root);
 
     let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
     let listener = TcpListener::bind(addr).await.unwrap();
 
-    let (stream, _) = listener.accept().await.unwrap();
 
+
+    let (stream, _) = listener.accept().await.unwrap();
+    let service = OscQueryStatic { root: arc_root.clone()  };
+
+    tokio::task::spawn(async move {
     if let Err(err) = http1::Builder::new()
         .serve_connection(stream, service)
         .await
     {
         println!("Failed to serve connection: {:?}", err);
     }
+    });  
+
+    
 }
