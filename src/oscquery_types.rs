@@ -1,6 +1,6 @@
 use crate::OSCUnit;
 use rosc::{OscError, OscType};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer,};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::{BTreeMap, VecDeque};
 
@@ -30,7 +30,7 @@ pub struct OscQueryParameter {
 impl OscQueryParameter {
     /// Create a new `OscQueryParameter` with the given `address` and `value`.
     /// ```
-    /// use rsoscquery::OscQueryParameter;
+    /// use oscq_rs::OscQueryParameter;
     /// let parameter = OscQueryParameter::new("/test/param".to_string(), rosc::OscType::Int(42));
     /// println!("{:?}",parameter);
     /// ```
@@ -47,7 +47,7 @@ impl OscQueryParameter {
 
     /// Set the `access` for the `OscQueryParameter` and return a new `OscQueryParameter` instance.
     /// ```
-    /// use rsoscquery::{OscQueryParameter,OSCAccess};
+    /// use oscq_rs::{OscQueryParameter,OSCAccess};
     /// let parameter = OscQueryParameter::new("/test/param".to_string(), rosc::OscType::Int(42))
     ///                 .with_access(OSCAccess::Read);
     /// println!("{:?}",parameter);
@@ -59,7 +59,7 @@ impl OscQueryParameter {
 
     /// Set the `unit` for the `OscQueryParameter` and return a new `OscQueryParameter` instance.
     /// ```
-    /// use rsoscquery::{OscQueryParameter,OSCUnit,OSCDistance};
+    /// use oscq_rs::{OscQueryParameter,OSCUnit,OSCDistance};
     /// let parameter = OscQueryParameter::new("/test/param".to_string(), rosc::OscType::Int(42))
     ///                 .with_unit(OSCUnit::Distance(OSCDistance::Meter));
     /// println!("{:?}",parameter);
@@ -71,7 +71,7 @@ impl OscQueryParameter {
 
     /// Set the `min` and `max` values for the `range` of the `OscQueryParameter` and return a new `OscQueryParameter` instance.
     /// ```
-    /// use rsoscquery::OscQueryParameter;
+    /// use oscq_rs::OscQueryParameter;
     /// let parameter = OscQueryParameter::new("/test/param".to_string(), rosc::OscType::Int(42))
     ///                 .with_min_max(0.0, 100.0);;
     /// println!("{:?}",parameter);
@@ -86,7 +86,7 @@ impl OscQueryParameter {
 
     /// Set the `description` for the `OscQueryParameter` and return a new `OscQueryParameter` instance.
     /// ```
-    /// use rsoscquery::OscQueryParameter;
+    /// use oscq_rs::OscQueryParameter;
     /// let parameter = OscQueryParameter::new("/test/param".to_string(), rosc::OscType::Int(42))
     ///                 .with_description("This is a test parameter".to_string());
     /// println!("{:?}",parameter);
@@ -236,7 +236,9 @@ pub struct OSCNode {
     osc_type: Option<Vec<OscType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "VALUE")]
-    value: Option<Vec<f32>>,
+    #[serde(serialize_with = "osc_value_serialize")]
+    #[serde(deserialize_with = "osc_value_deserialize")]
+    value: Option<Vec<OscType>>,
     #[serde(rename = "RANGE")]
     #[serde(skip_serializing_if = "Option::is_none")]
     range: Option<Vec<BTreeMap<OscRangeBounds, f32>>>,
@@ -339,8 +341,8 @@ impl OSCNode {
             }
             // VALUE
             match &mut self.value {
-                Some(v) => v.push(parameter.value.float().unwrap()),
-                None => self.value = Some(vec![parameter.value.float().unwrap()]),
+                Some(v) => v.push(parameter.value),
+                None => self.value = Some(vec![parameter.value]),
             }
         }
         Ok(())
@@ -468,6 +470,48 @@ fn osc_type_deserialize<'de, D: Deserializer<'de>>(
     }
 }
 
+use serde::ser::SerializeSeq;
+/// convert a Vec of OscType to its OSC type string("f", "i", "fff" ...)
+fn osc_value_serialize<S: Serializer>(
+    addr: &Option<Vec<OscType>>,
+    serializer: S,
+) -> Result<S::Ok, S::Error> {
+
+    match addr {
+        Some(values) => {
+            let mut seq = serializer.serialize_seq(Some(values.len()))?;
+            for val in values {
+                match val {
+                        OscType::Int(i) => seq.serialize_element(i)?,
+                        OscType::Float(f) => seq.serialize_element(f)?,
+                        OscType::String(g) => seq.serialize_element(g)?,
+                        OscType::Blob(b) => seq.serialize_element(b)?,
+                        OscType::Time(t) => todo!(),
+                        OscType::Long(l) => seq.serialize_element(l)?,
+                        OscType::Double(d) => seq.serialize_element(d)?,
+                        OscType::Char(c) =>seq.serialize_element(c)?,
+                        OscType::Color(r) => todo!(),
+                        OscType::Midi(m) => todo!(),
+                        OscType::Bool(b) => seq.serialize_element(b)?,
+                        OscType::Array(a) => todo!(),
+                        OscType::Nil => todo!(),
+                        OscType::Inf => todo!(),
+                    }
+                }
+            seq.end()
+        },
+        None => serializer.serialize_none(),
+    }
+    
+
+}
+
+fn osc_value_deserialize<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<Vec<OscType>>, D::Error> {
+    todo!()
+}
+
 ///-----------------------------------
 /// Some Test left from development --
 ///-----------------------------------
@@ -492,7 +536,7 @@ fn serialize_osc_node() {
                     access: Some(OSCAccess::ReadWrite),
                     contents: None,
                     osc_type: Some(vec![OscType::Int(0)]),
-                    value: Some(vec![42.0]),
+                    value: Some(vec![OscType::Int(123)]),
                     range: Some(vec![range]),
                     unit: None,
                     host_info: None,
@@ -501,7 +545,7 @@ fn serialize_osc_node() {
             contents
         }),
         osc_type: Some(vec![OscType::Float(0f32), OscType::Float(0f32)]),
-        value: Some(vec![3.1415, 2.7182]),
+        value: Some(vec![OscType::Float(3.1234), OscType::Float(2.7182)]),
         range: None,
         unit: Some(vec![
             OSCUnit::Distance(crate::OSCDistance::Meter),
@@ -514,7 +558,7 @@ fn serialize_osc_node() {
     println!("{}", serialized);
     assert_eq!(
         serialized,
-        r#"{"DESCRIPTION":"A test node","FULL_PATH":"/test/node","ACCESS":3,"CONTENTS":{"child_node":{"DESCRIPTION":"A child node","FULL_PATH":"/test/node/child_node","ACCESS":3,"TYPE":"i","VALUE":[42.0],"RANGE":[{"MIN":100.0,"MAX":200.0}]}},"TYPE":"ff","VALUE":[3.1415,2.7182],"UNIT":["distance.m","speed.km/h"]}"#
+        r#"{"DESCRIPTION":"A test node","FULL_PATH":"/test/node","ACCESS":3,"CONTENTS":{"child_node":{"DESCRIPTION":"A child node","FULL_PATH":"/test/node/child_node","ACCESS":3,"TYPE":"i","VALUE":[123],"RANGE":[{"MIN":100.0,"MAX":200.0}]}},"TYPE":"ff","VALUE":[3.1234,2.7182],"UNIT":["distance.m","speed.km/h"]}"#
     );
 }
 
