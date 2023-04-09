@@ -6,6 +6,10 @@ edition = "2021"
 description = "OSCQuery implementation to provide discovery of OSC endpoints over network"
 license = "MIT"
 repository = "https://github.com/revilo196/oscq_rs"
+readme = "README.md"
+documentation = "https://docs.rs/oscq_rs"
+keywords = ["osc", "oscquery", "creative-coding"]
+homepage = "https://github.com/revilo196/oscq_rs"
 
 [dependencies]
 hyper = { version = "1.0.0-rc.3", features = ["full"] }
