@@ -1,0 +1,16 @@
+[package]
+name = "oscq_rs"
+authors = ["Oliver Walter <wa.oli15@gmail.com>"]
+version = "0.0.1-pre"
+edition = "2021"
+description = "OSCQuery implementation to provide discovery of OSC endpoints over network"
+license = "MIT"
+repository = "https://github.com/revilo196/oscq_rs"
+
+[dependencies]
+hyper = { version = "1.0.0-rc.3", features = ["full"] }
+tokio = { version = "1", features = ["full"] }
+rosc = "0.10.0"
+serde = { version = "1.0.159", features = ["derive"] }
+serde_json = "1.0.95"
+serde_repr = "0.1"
