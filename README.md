@@ -1,6 +1,5 @@
 # oscq_rs
 
-## Introduction:
 OSC (Open Sound Control) is a network communication protocol used for real-time musical performances, multimedia systems, and other applications that involve the exchange of time-critical data. It provides a standardized way of sending messages and data between software and hardware components in a distributed system. OSCQuery is an extension to the OSC protocol that allows for the dynamic discovery of available OSC endpoints and their properties. See this introduction [OSCQuery](https://vdmx.vidvox.net/blog/oscquery)
 
 The oscq_rs library is a Rust implementation of the OSCQuery protocol that provides an easy way to generate OSCQuery descriptions from an list of endpoint descriptions and answer OSCQuery requests. It allows developers to quickly build OSC-enabled applications that can dynamically discover and controlled via OSC on the network.
