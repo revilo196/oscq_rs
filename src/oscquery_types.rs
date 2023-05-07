@@ -113,9 +113,12 @@ pub struct OscHostInfo {
     #[serde(rename = "NAME")]
     name: String, // OSC device name
     #[serde(rename = "OSC_IP")]
+    #[serde(skip_serializing)]
     osc_ip: String, // IP of the OSC device
     #[serde(rename = "OSC_PORT")]
     osc_port: u16, // Port of the OSC device
+    #[serde(rename = "OSC_TRANSPORT")]
+    osc_trans: String, // IP of the OSC device
     #[serde(rename = "EXTENSIONS")]
     extension: OscHostInfoExtension, // Information of the supported OSCQuery extension
 }
@@ -127,6 +130,7 @@ impl OscHostInfo {
             name: device_name,
             osc_ip,
             osc_port,
+            osc_trans: "UDP".to_string(),
             extension: OscHostInfoExtension::default(),
         }
     }
@@ -584,6 +588,7 @@ fn add_parameters() {
         osc_ip: "127.0.0.1".to_string(),
         osc_port: 6666,
         extension: ext,
+        osc_trans: "UDP".to_string(),
     };
 
     let mut root = OSCNode::root(Some(Box::new(info)));
