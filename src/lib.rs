@@ -6,6 +6,10 @@ pub use oscquery_types::*;
 pub use oscunit::*;
 pub use service::*;
 
+pub mod osc {
+    pub use rosc::*;
+}
+
 #[test]
 fn readme_example() {
     use crate::{OSCAccess, OSCUnit, OscHostInfo};

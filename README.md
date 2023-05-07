@@ -18,12 +18,13 @@ serde_json = "1.0.95"
 ```
 ### Usage
 
-Here's an example of how to create an OSCNode tree and serialize it:
+Here's an example of how to create an OSCNode tree, serialize it, and serve it as an OSCQuery server using the integrated HTTP service:
 
 ```rust
 
 use oscq_rs::{OscHostInfo, OscQueryParameter, OSCAccess, OSCUnit, OSCNode};
 use rosc::OscType;
+use std::net::SocketAddr;
 
 fn main() {
     let info = OscHostInfo::new("OSCQuery Test".to_string(),  "127.0.0.1".to_string(), 6666)
@@ -56,13 +57,25 @@ fn main() {
     root.add(par1).unwrap();
     root.add(par2).unwrap();
 
+    // example output
     let serialized_tree = serde_json::to_string(&root).unwrap();
-
     println!("{}", serialized_tree);
+
+
+    // Set the IP address and port number for the oscquery service
+    let addr: SocketAddr = ([127, 0, 0, 1], 3000).into();
+
+    // Run the oscquery service and get the futures for the server and the zeroconf server
+    spawn_oscquery_service(root, addr);
+
+    loop {
+        // ... 
+        // the oscquery service will run in the background
+    }
 }
 ```
 
-This creates an OSCNode tree with two endpoints, /group/test and /group/test2, both of which are of type Float. The tree is then serialized to a JSON string using the serde_json crate. This JSON string can be used as a response to an OSCQuery GET request. 
+This creates an OSCNode tree with two endpoints, /group/test and /group/test2, both of which are of type Float. The tree is then served as an OSCQuery server using the integrated HTTP service provided by oscq_rs::serve_oscquery function. In this example, the server listens on http://127.0.0.1:3000 for incoming OSCQuery requests.
 
 Note that in this example we've only added Float endpoints, but oscq_rs supports other types as well, such as Int, Bool, and String.
 
@@ -75,7 +88,6 @@ Note that in this example we've only added Float endpoints, but oscq_rs supports
 
 ## Future Work:
  - Test and Implement all OSC datatypes
- - Integrated simple http server
 
  Note that this is not an exhaustive list of limitations and future work, and the development of the library may evolve as new features and improvements are identified.
 

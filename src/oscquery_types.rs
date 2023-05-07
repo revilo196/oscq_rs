@@ -1,6 +1,6 @@
 use crate::OSCUnit;
 use rosc::{OscError, OscType};
-use serde::{Deserialize, Deserializer, Serialize, Serializer,};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::collections::{BTreeMap, VecDeque};
 
@@ -113,7 +113,6 @@ pub struct OscHostInfo {
     #[serde(rename = "NAME")]
     name: String, // OSC device name
     #[serde(rename = "OSC_IP")]
-    #[serde(skip_serializing)]
     osc_ip: String, // IP of the OSC device
     #[serde(rename = "OSC_PORT")]
     osc_port: u16, // Port of the OSC device
@@ -380,7 +379,7 @@ impl OSCNode {
                     .as_ref()
                     .ok_or(OscError::BadAddress(path.clone()))?
                     .get(*next_node)
-                    .ok_or(OscError::BadAddress(path.clone()))?;
+                    .ok_or(OscError::BadAddress(path))?;
                 let v: Vec<_> = addr.into();
                 node.get(v.join("/"))
             } else {
@@ -480,38 +479,35 @@ fn osc_value_serialize<S: Serializer>(
     addr: &Option<Vec<OscType>>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
-
     match addr {
         Some(values) => {
             let mut seq = serializer.serialize_seq(Some(values.len()))?;
             for val in values {
                 match val {
-                        OscType::Int(i) => seq.serialize_element(i)?,
-                        OscType::Float(f) => seq.serialize_element(f)?,
-                        OscType::String(g) => seq.serialize_element(g)?,
-                        OscType::Blob(b) => seq.serialize_element(b)?,
-                        OscType::Time(t) => todo!(),
-                        OscType::Long(l) => seq.serialize_element(l)?,
-                        OscType::Double(d) => seq.serialize_element(d)?,
-                        OscType::Char(c) =>seq.serialize_element(c)?,
-                        OscType::Color(r) => todo!(),
-                        OscType::Midi(m) => todo!(),
-                        OscType::Bool(b) => seq.serialize_element(b)?,
-                        OscType::Array(a) => todo!(),
-                        OscType::Nil => todo!(),
-                        OscType::Inf => todo!(),
-                    }
+                    OscType::Int(i) => seq.serialize_element(i)?,
+                    OscType::Float(f) => seq.serialize_element(f)?,
+                    OscType::String(g) => seq.serialize_element(g)?,
+                    OscType::Blob(b) => seq.serialize_element(b)?,
+                    OscType::Time(_t) => todo!(),
+                    OscType::Long(l) => seq.serialize_element(l)?,
+                    OscType::Double(d) => seq.serialize_element(d)?,
+                    OscType::Char(c) => seq.serialize_element(c)?,
+                    OscType::Color(_r) => todo!(),
+                    OscType::Midi(_m) => todo!(),
+                    OscType::Bool(b) => seq.serialize_element(b)?,
+                    OscType::Array(_a) => todo!(),
+                    OscType::Nil => todo!(),
+                    OscType::Inf => todo!(),
                 }
+            }
             seq.end()
-        },
+        }
         None => serializer.serialize_none(),
     }
-    
-
 }
 
 fn osc_value_deserialize<'de, D: Deserializer<'de>>(
-    deserializer: D,
+    _deserializer: D,
 ) -> Result<Option<Vec<OscType>>, D::Error> {
     // problem that the this Deserializer depends on the type value that is Deserializer separately
     todo!()
