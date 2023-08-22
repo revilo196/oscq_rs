@@ -1,3 +1,4 @@
+use crate::tokiort::TokioIo;
 use crate::OSCNode;
 
 use hyper::server::conn::http1;
@@ -39,7 +40,7 @@ impl Service<Request<IncomingBody>> for OscQueryStatic {
     /// Handle an incoming HTTP request and return a future representing the eventual response.
     /// If the requested resource is not found, a 404 response is returned. If a query string is present,
     /// the appropriate response is generated based on the query. Otherwise, the full OSC query data is returned.
-    fn call(&mut self, req: Request<IncomingBody>) -> Self::Future {
+    fn call(&self, req: Request<IncomingBody>) -> Self::Future {
         // Create a response with the given string, including the appropriate "Content-Type" header.
         fn mk_response(s: String) -> Result<Response<String>, hyper::Error> {
             println!("{}", s);
@@ -134,11 +135,12 @@ pub async fn run_oscquery_service(
             let service = OscQueryStatic {
                 root: arc_root.clone(),
             };
+            let io = TokioIo::new(stream);
             tokio::task::spawn(async move {
                 println!("oscq_rs serve connection async {:?}", con);
                 if let Err(err) = http1::Builder::new()
                     .keep_alive(true)
-                    .serve_connection(stream, service)
+                    .serve_connection(io, service)
                     .await
                 {
                     println!("Failed to serve connection: {:?}", err);
